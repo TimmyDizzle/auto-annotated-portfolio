@@ -6,7 +6,7 @@ SYSTEM_PROMPT = """You are a YouTube visual specialist. Return JSON with keys: t
 
 def run(script, brand_colors=None):
     colors = f"\n\nBrand colors: {', '.join(brand_colors)}" if brand_colors else ""
-    r = client.messages.create(model="claude-sonnet-4-6", max_tokens=2048, system=SYSTEM_PROMPT,
+    r = client.messages.create(model="claude-sonnet-4-6", max_tokens=4096, system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": f"Script:\n{json.dumps(script, indent=2)}{colors}\nReturn JSON."}])
     raw = r.content[0].text.strip()
     if raw.startswith("```"):
