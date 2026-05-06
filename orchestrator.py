@@ -1,7 +1,7 @@
 ﻿import argparse, json
 from datetime import datetime, timezone
 from pathlib import Path
-from agents import research_agent, script_agent, media_agent, publish_agent, director_agent, voice_agent, thumbnail_agent, video_agent, assembly_agent
+from agents import research_agent, script_agent, media_agent, publish_agent, director_agent, voice_agent, video_agent, assembly_agent
 
 MEMORY_PATH = Path(__file__).parent / "memory" / "channel_memory.json"
 OUTPUT_PATH = Path(__file__).parent / "output"
@@ -44,16 +44,21 @@ def run_pipeline(niche, topic, tone="conversational", visual_style="cinematic da
         print(f"\n{'='*55}\n  VIDEO GENERATION\n{'='*55}\n")
         print("[5] DIRECTOR - Writing visual prompts...")
         d = director_agent.run(s, visual_style)
-        print(f"      {len(d.get('clips',[]))} clips planned")
+        clips = d.get("clips", [])
+        print(f"      {len(clips)} clips planned")
+        thumb_file = run_dir / "thumbnail_prompt.txt"
+        thumb_file.write_text(d.get("thumbnail_prompt",""))
+        print(f"      Thumbnail prompt saved to: {thumb_file}")
         print("[6] VOICEOVER - ElevenLabs...")
         vp = voice_agent.run(s, str(run_dir))
-        print("[7] THUMBNAIL - Imagen 3...")
-        tp = thumbnail_agent.run(d.get("thumbnail_prompt",""), str(run_dir))
-        print("[8] VIDEO CLIPS - Veo 2 (takes 3-5 min)...")
-        cp = video_agent.run(d.get("clips",[]), str(run_dir))
-        print("[9] ASSEMBLY - Stitching together...")
+        print("[7] VIDEO CLIPS - Veo 2 (takes 3-5 min)...")
+        cp = video_agent.run(clips, str(run_dir))
+        print("[8] ASSEMBLY - Stitching together...")
         fp = assembly_agent.run(cp, vp, str(run_dir), s.get("title","video"))
-        print(f"\n{'='*55}\n  DONE!\n  Video: {fp}\n  Thumb: {tp}\n{'='*55}")
+        result["director"] = d
+        result["final_video_path"] = fp
+        (run_dir / "data.json").write_text(json.dumps(result, indent=2))
+        print(f"\n{'='*55}\n  DONE!\n  Video: {fp}\n  Folder: {run_dir}\n{'='*55}")
     else:
         print(f"\n{'='*55}\n  Script done! Saved to: {run_dir}\n  Add --video to generate the actual video\n{'='*55}")
     mem.setdefault("video_history",[]).append({"timestamp":datetime.now(timezone.utc).isoformat(),"title":s.get("title",""),"niche":niche})
